@@ -6,7 +6,7 @@ put melons in a shopping cart.
 Authors: Joel Burton, Christian Fernandez, Meggie Mahnken, Katie Byers.
 """
 
-from flask import Flask, render_template, redirect, flash
+from flask import Flask, render_template, redirect, flash,session
 import jinja2
 
 import melons
@@ -50,8 +50,8 @@ def show_melon(melon_id):
     Show all info about a melon. Also, provide a button to buy that melon.
     """
 
-    melon = melons.get_by_id("meli")
-    print(melon)
+    melon = melons.get_by_id(melon_id)
+
     return render_template("melon_details.html",
                            display_melon=melon)
 
@@ -74,8 +74,15 @@ def add_to_cart(melon_id):
     # - increment the count for that melon id by 1
     # - flash a success message
     # - redirect the user to the cart page
+    if 'cart' in session:
+        cart =session['cart']
+    else:
+        cart = session['cart'] = {}
+    
+    cart[melon_id] = cart.get(melon_id,0) + 1
+    flash("Melon successfully added to cart.")
 
-    return "Oops! This needs to be implemented!"
+    return redirect("/cart")
 
 
 @app.route("/cart")
@@ -99,40 +106,83 @@ def show_shopping_cart():
     #
     # Make sure your function can also handle the case wherein no cart has
     # been added to the session
+    """Display content of shopping cart."""
 
-    return render_template("cart.html")
+    # Keep track of the total cost of the order
+    order_total = 0
+
+    # Create a list to hold Melon objects corresponding to the melon_id's in
+    # the cart
+    cart_melons = []
+
+    # Get the cart dictionary out of the session (or an empty one if none
+    # exists yet)
+    cart = session.get("cart", {})
+
+    # Loop over the cart dictionary
+    for melon_id, quantity in cart.items():
+        # Retrieve the Melon object corresponding to this id
+        melon = melons.get_by_id(melon_id)
+
+        # Calculate the total cost for this type of melon and add it to the
+        # overall total for the order
+        total_cost = quantity * melon.price
+        order_total += total_cost
+
+        # Add the quantity and total cost as attributes on the Melon object
+        melon.quantity = quantity
+        melon.total_cost = total_cost
+
+        # Add the Melon object to our list
+        cart_melons.append(melon)
+
+    # Pass the list of Melon objects and the order total to our cart template
+
+    return render_template("cart.html",
+                           cart=cart_melons,
+                           order_total=order_total)
 
 
-@app.route("/login", methods=["GET"])
-def show_login():
-    """Show login form."""
+# @app.route("/login", methods=["GET"])
+# def show_login():
+#     """Show login form."""
 
-    return render_template("login.html")
+#     return render_template("login.html")
 
 
-@app.route("/login", methods=["POST"])
-def process_login():
-    """Log user into site.
+#     return render_template("cart.html")
 
-    Find the user's login credentials located in the 'request.form'
-    dictionary, look up the user, and store them in the session.
-    """
 
-    # TODO: Need to implement this!
+# @app.route("/login", methods=["GET"])
+# def show_login():
+#     """Show login form."""
 
-    # The logic here should be something like:
-    #
-    # - get user-provided name and password from request.form
-    # - use customers.get_by_email() to retrieve corresponding Customer
-    #   object (if any)
-    # - if a Customer with that email was found, check the provided password
-    #   against the stored one
-    # - if they match, store the user's email in the session, flash a success
-    #   message and redirect the user to the "/melons" route
-    # - if they don't, flash a failure message and redirect back to "/login"
-    # - do the same if a Customer with that email doesn't exist
+#     return render_template("login.html")
 
-    return "Oops! This needs to be implemented"
+
+# @app.route("/login", methods=["POST"])
+# def process_login():
+#     """Log user into site.
+
+#     Find the user's login credentials located in the 'request.form'
+#     dictionary, look up the user, and store them in the session.
+#     """
+
+#     # TODO: Need to implement this!
+
+#     # The logic here should be something like:
+#     #
+#     # - get user-provided name and password from request.form
+#     # - use customers.get_by_email() to retrieve corresponding Customer
+#     #   object (if any)
+#     # - if a Customer with that email was found, check the provided password
+#     #   against the stored one
+#     # - if they match, store the user's email in the session, flash a success
+#     #   message and redirect the user to the "/melons" route
+#     # - if they don't, flash a failure message and redirect back to "/login"
+#     # - do the same if a Customer with that email doesn't exist
+
+#     return "Oops! This needs to be implemented"
 
 
 @app.route("/checkout")
